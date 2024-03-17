@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/rmntim/movielab/internal/config"
 	"github.com/rmntim/movielab/internal/lib/logger/sl"
+	"github.com/rmntim/movielab/internal/server/handlers/auth"
 	loggerMw "github.com/rmntim/movielab/internal/server/middleware/logger"
 	"github.com/rmntim/movielab/internal/storage/postgres"
 	"log/slog"
@@ -14,6 +15,8 @@ const (
 	envLocal = "local"
 	envProd  = "prod"
 )
+
+const jwtSecret = "secret"
 
 func main() {
 	cfg := config.MustLoad()
@@ -30,13 +33,15 @@ func main() {
 	}
 	_ = storage
 
-	var router http.Handler = http.NewServeMux()
-	router = loggerMw.New(log)(router)
+	router := http.NewServeMux()
+	router.HandleFunc("POST /auth/sign-in", auth.New(log, storage, jwtSecret))
+
+	handler := loggerMw.New(log)(router)
 
 	log.Info("Starting server", slog.String("address", cfg.Address))
 	srv := &http.Server{
 		Addr:         cfg.Address,
-		Handler:      router,
+		Handler:      handler,
 		ReadTimeout:  cfg.Timeout,
 		WriteTimeout: cfg.Timeout,
 		IdleTimeout:  cfg.IdleTimeout,
