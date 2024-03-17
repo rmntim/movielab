@@ -1,4 +1,4 @@
-package middleware
+package logger
 
 import (
 	"github.com/rmntim/movielab/internal/lib/logger/sl"
@@ -10,8 +10,6 @@ import (
 
 func New(log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		log = log.With(slog.String("component", "middleware/logger"))
-
 		log.Info("Logger middleware is enabled")
 
 		fn := func(w http.ResponseWriter, r *http.Request) {

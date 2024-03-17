@@ -3,8 +3,10 @@ package main
 import (
 	"github.com/rmntim/movielab/internal/config"
 	"github.com/rmntim/movielab/internal/lib/logger/sl"
+	loggerMw "github.com/rmntim/movielab/internal/server/middleware/logger"
 	"github.com/rmntim/movielab/internal/storage/postgres"
 	"log/slog"
+	"net/http"
 	"os"
 )
 
@@ -16,20 +18,35 @@ const (
 func main() {
 	cfg := config.MustLoad()
 
-	logger := setupLogger(cfg.Env)
+	log := setupLogger(cfg.Env)
 
-	logger.Info("Starting server", slog.String("env", cfg.Env))
-	logger.Debug("Debug messages are enabled")
+	log.Info("Starting server", slog.String("env", cfg.Env))
+	log.Debug("Debug messages are enabled")
 
 	storage, err := postgres.New(cfg.DBUrl)
 	if err != nil {
-		logger.Error("Failed to init storage", sl.Err(err))
+		log.Error("Failed to init storage", sl.Err(err))
 		os.Exit(1)
 	}
+	_ = storage
 
-	// init router
+	var router http.Handler = http.NewServeMux()
+	router = loggerMw.New(log)(router)
 
-	// start server
+	log.Info("Starting server", slog.String("address", cfg.Address))
+	srv := &http.Server{
+		Addr:         cfg.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.Timeout,
+		WriteTimeout: cfg.Timeout,
+		IdleTimeout:  cfg.IdleTimeout,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		log.Error("Failed to start server")
+	}
+
+	log.Info("Server stopped")
 }
 func setupLogger(env string) *slog.Logger {
 	var logger *slog.Logger
