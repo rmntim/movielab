@@ -1,0 +1,11 @@
+env: "local"
+db:
+  address: "127.0.0.1:5432"
+  user: "postgres"
+  password: "postgres"
+  name: "movielab"
+  sslmode: "disable"
+http_server:
+  address: "127.0.0.1:8080"
+  timeout: "5s"
+  idle_timeout: "60s"
