@@ -33,12 +33,12 @@ func New(log *slog.Logger, userGetter UserRoleGetter, secret string) http.Handle
 		log := log.With(slog.String("op", op))
 
 		var req Request
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			log.Error("Failed to decode request", sl.Err(err))
-			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, resp.Error("Invalid request"))
-			return
-		}
+    if err := render.DecodeJSON(r.Body, &req); err != nil {
+      log.Error("Failed to decode request", sl.Err(err))
+      w.WriteHeader(http.StatusBadRequest)
+      render.JSON(w, r, resp.Error("Invalid request"))
+      return
+    }
 
 		log.Info("Request decoded")
 
