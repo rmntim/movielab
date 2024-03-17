@@ -1,9 +1,11 @@
 package main
 
 import (
+	"github.com/hobord/routegroup"
 	"github.com/rmntim/movielab/internal/config"
 	"github.com/rmntim/movielab/internal/lib/logger/sl"
 	"github.com/rmntim/movielab/internal/server/handlers/auth"
+	jwtMw "github.com/rmntim/movielab/internal/server/middleware/jwt"
 	loggerMw "github.com/rmntim/movielab/internal/server/middleware/logger"
 	"github.com/rmntim/movielab/internal/storage/postgres"
 	"log/slog"
@@ -31,12 +33,20 @@ func main() {
 		log.Error("Failed to init storage", sl.Err(err))
 		os.Exit(1)
 	}
-	_ = storage
 
-	router := http.NewServeMux()
-	router.HandleFunc("POST /auth/sign-in/", auth.New(log, storage, jwtSecret))
+	mux := http.NewServeMux()
+	root := routegroup.NewGroup(routegroup.WithMux(mux))
 
-	handler := loggerMw.New(log)(router)
+	root.HandleFunc("POST /auth/sign-in", auth.New(log, storage, jwtSecret))
+
+	apiGroup := root.SubGroup("/api")
+	apiGroup.Use(jwtMw.New(jwtSecret))
+
+	movieGroup := apiGroup.SubGroup("/movies")
+	movieGroup.HandleFunc("GET /", nil)
+
+	// Have to put logger last, cause routegroup package is foolish with it
+	handler := loggerMw.New(log)(root)
 
 	log.Info("Starting server", slog.String("address", cfg.Address))
 	srv := &http.Server{
