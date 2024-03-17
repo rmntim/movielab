@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
@@ -33,12 +32,12 @@ func New(log *slog.Logger, userGetter UserRoleGetter, secret string) http.Handle
 		log := log.With(slog.String("op", op))
 
 		var req Request
-    if err := render.DecodeJSON(r.Body, &req); err != nil {
-      log.Error("Failed to decode request", sl.Err(err))
-      w.WriteHeader(http.StatusBadRequest)
-      render.JSON(w, r, resp.Error("Invalid request"))
-      return
-    }
+		if err := render.DecodeJSON(r.Body, &req); err != nil {
+			log.Error("Failed to decode request", sl.Err(err))
+			w.WriteHeader(http.StatusBadRequest)
+			render.JSON(w, r, resp.Error("Invalid request"))
+			return
+		}
 
 		log.Info("Request decoded")
 
