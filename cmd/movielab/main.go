@@ -34,7 +34,7 @@ func main() {
 	_ = storage
 
 	router := http.NewServeMux()
-	router.HandleFunc("POST /auth/sign-in", auth.New(log, storage, jwtSecret))
+	router.HandleFunc("POST /auth/sign-in/", auth.New(log, storage, jwtSecret))
 
 	handler := loggerMw.New(log)(router)
 
