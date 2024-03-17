@@ -1,0 +1,27 @@
+version: '3'
+
+env:
+  BUILD_DIR: build
+  EXE: server{{exeExt}}
+
+tasks:
+  default:
+    desc: Build and run the server
+    aliases: [ run ]
+    cmds:
+      - task: build
+      - ./{{.BUILD_DIR}}/{{.EXE}}
+
+  build:
+    desc: Build the server
+    cmds:
+      - go build -v -o ./{{.BUILD_DIR}}/{{.EXE}} ./cmd/movielab/main.go
+    sources:
+      - '**/*.go'
+    generates:
+      - ./{{.BUILD_DIR}}/{{.EXE}}
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf ./{{.BUILD_DIR}}
