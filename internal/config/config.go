@@ -10,16 +10,8 @@ import (
 
 type Config struct {
 	Env        string           `yaml:"env" env-required:"true"`
-	DB         DBConfig         `yaml:"db"`
+	DBUrl      string           `yaml:"db_url" env:"DATABASE_URL" env-required:"true"`
 	HTTPServer HTTPServerConfig `yaml:"http_server"`
-}
-
-type DBConfig struct {
-	Address  string `yaml:"address" env-required:"true"`
-	User     string `yaml:"user" env-required:"true"`
-	Password string `yaml:"password" env:"POSTGRES_PASSWORD" env-required:"true"`
-	Database string `yaml:"name" env-default:"movielab"`
-	SslMode  string `yaml:"sslmode" env-default:"disable"`
 }
 
 type HTTPServerConfig struct {
