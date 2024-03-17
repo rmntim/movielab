@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"errors"
+	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt"
 	resp "github.com/rmntim/movielab/internal/lib/api/response"
@@ -21,22 +22,21 @@ type Response struct {
 	Token string `json:"token"`
 }
 
-type UserGetter interface {
+type UserRoleGetter interface {
 	GetUserRole(username string, password string) (string, error)
 }
 
-func New(log *slog.Logger, userGetter UserGetter, secret string) http.HandlerFunc {
+func New(log *slog.Logger, userGetter UserRoleGetter, secret string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.auth.New"
 
-		log = log.With(slog.String("op", op))
+		log := log.With(slog.String("op", op))
 
 		var req Request
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			log.Error("Failed to decode request", sl.Err(err))
-			if err := json.NewEncoder(w).Encode(resp.Error("Failed to decode request")); err != nil {
-				log.Error("Failed to encode response", sl.Err(err))
-			}
+			w.WriteHeader(http.StatusBadRequest)
+			render.JSON(w, r, resp.Error("Invalid request"))
 			return
 		}
 
@@ -44,41 +44,35 @@ func New(log *slog.Logger, userGetter UserGetter, secret string) http.HandlerFun
 
 		if err := validator.New().Struct(req); err != nil {
 			log.Error("Invalid request", sl.Err(err))
+			w.WriteHeader(http.StatusBadRequest)
 			var validationErr validator.ValidationErrors
 			errors.As(err, &validationErr)
-			if err := json.NewEncoder(w).Encode(resp.ValidationError(validationErr)); err != nil {
-				log.Error("Failed to encode response", sl.Err(err))
-			}
+			render.JSON(w, r, resp.ValidationError(validationErr))
 			return
 		}
 
 		role, err := userGetter.GetUserRole(req.Username, req.Password)
 		if err != nil {
 			log.Error("No user found", sl.Err(err))
-			if err := json.NewEncoder(w).Encode(resp.Error("No user found")); err != nil {
-				log.Error("Failed to encode response", sl.Err(err))
-			}
+			w.WriteHeader(http.StatusNotFound)
+			render.JSON(w, r, resp.Error("No user found"))
 			return
 		}
 
-		log.Info("User signed in")
 		jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"role": role,
 		})
 		token, err := jwtToken.SignedString([]byte(secret))
 		if err != nil {
 			log.Error("Failed to sign JWT token", sl.Err(err))
-			if err := json.NewEncoder(w).Encode(resp.Error("Failed to sign JWT token")); err != nil {
-				log.Error("Failed to encode response", sl.Err(err))
-			}
+			w.WriteHeader(http.StatusInternalServerError)
+			render.JSON(w, r, resp.Error("Failed to sign JWT token"))
 			return
 		}
 
-		if err := json.NewEncoder(w).Encode(Response{
+		render.JSON(w, r, Response{
 			Response: resp.Ok(),
 			Token:    token,
-		}); err != nil {
-			log.Error("Failed to return JWT token", sl.Err(err))
-		}
+		})
 	}
 }
