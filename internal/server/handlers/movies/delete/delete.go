@@ -13,7 +13,7 @@ type MovieDeleter interface {
 
 func New(log *slog.Logger, movieDeleter MovieDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "handlers.movies.NewDeleteHandler"
+		const op = "handlers.movies.delete.New"
 
 		log := log.With(slog.String("op", op))
 

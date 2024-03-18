@@ -24,7 +24,7 @@ type Response struct {
 
 func New(log *slog.Logger, movieUpdater MovieUpdater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "handlers.movies.NewPutHandler"
+		const op = "handlers.movies.put.New"
 
 		log := log.With(slog.String("op", op))
 

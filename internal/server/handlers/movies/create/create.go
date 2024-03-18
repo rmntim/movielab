@@ -20,7 +20,7 @@ type Response struct {
 
 func New(log *slog.Logger, movieCreator MovieCreator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "handlers.movies.NewCreateHandler"
+		const op = "handlers.movies.create.New"
 
 		log := log.With(slog.String("op", op))
 
