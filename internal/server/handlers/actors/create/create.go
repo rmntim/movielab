@@ -24,6 +24,13 @@ func New(log *slog.Logger, actorCreator ActorCreator) http.HandlerFunc {
 
 		log := log.With(slog.String("op", op))
 
+		if r.Header.Get("x-role") != "admin" {
+			log.Error("Insufficient permissions", slog.String("role", r.Header.Get("x-role")))
+			w.WriteHeader(http.StatusUnauthorized)
+			render.JSON(w, r, resp.Error("Insufficient permissions"))
+			return
+		}
+
 		var actor entity.NewActor
 		if err := render.DecodeJSON(r.Body, &actor); err != nil {
 			log.Error("Failed to decode request", sl.Err(err))
