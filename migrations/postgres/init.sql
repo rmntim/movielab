@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS movies
     description  VARCHAR(1000),
     release_date TIMESTAMPTZ  NOT NULL,
     rating       INT          NOT NULL
+        CONSTRAINT rating_check CHECK (rating >= 0 AND rating <= 10)
 );
 
 CREATE TABLE IF NOT EXISTS actors
