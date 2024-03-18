@@ -24,3 +24,10 @@ task run
 ```sh
 docker compose up -d
 ```
+
+## Testing
+
+```sh
+task generate
+task test
+```
