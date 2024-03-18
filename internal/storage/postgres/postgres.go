@@ -148,3 +148,19 @@ func (s *Storage) CreateMovie(movie *entity.NewMovie) (int, error) {
 
 	return id, nil
 }
+
+func (s *Storage) DeleteMovie(id int) error {
+	const op = "storage.postgres.DeleteMovie"
+
+	stmt, err := s.db.Prepare("DELETE FROM movies WHERE id = $1")
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = stmt.Exec(id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
