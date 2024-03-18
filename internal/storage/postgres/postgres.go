@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"github.com/rmntim/movielab/internal/entity"
 	"github.com/rmntim/movielab/internal/storage"
@@ -55,7 +56,7 @@ func (s *Storage) GetMovies(limit, offset int, orderBy string, asc bool) ([]enti
 	}
 
 	query := fmt.Sprintf(
-		`SELECT m.*, array_to_json(array_agg(a)) FROM movies m
+		`SELECT m.*, array_remove(array_agg(a.id), NULL) FROM movies m
 				JOIN movie_actors ma ON ma.movie_id = m.id
 				JOIN actors a ON a.id = ma.actor_id
 				GROUP BY m.id
@@ -74,7 +75,7 @@ func (s *Storage) GetMovies(limit, offset int, orderBy string, asc bool) ([]enti
 	var movies []entity.Movie
 	for rows.Next() {
 		var movie entity.Movie
-		err = rows.Scan(&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseDate, &movie.Rating, &movie.Actors)
+		err = rows.Scan(&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseDate, &movie.Rating, (*pq.Int32Array)(&movie.ActorIDs))
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -88,9 +89,9 @@ func (s *Storage) GetMovieById(id int) (*entity.Movie, error) {
 	const op = "storage.postgres.GetMovieById"
 
 	stmt, err := s.db.Prepare(
-		`SELECT m.*, array_to_json(array_agg(a)) FROM movies m
-				JOIN movie_actors ma ON m.id = ma.movie_id
-				JOIN actors a ON ma.actor_id = a.id
+		`SELECT m.*, array_remove(array_agg(a.id), NULL) FROM movies m
+				LEFT JOIN movie_actors ma ON m.id = ma.movie_id
+				LEFT JOIN actors a ON ma.actor_id = a.id
 				WHERE m.id = $1
 				GROUP BY m.id`)
 	if err != nil {
@@ -98,7 +99,7 @@ func (s *Storage) GetMovieById(id int) (*entity.Movie, error) {
 	}
 
 	var movie entity.Movie
-	err = stmt.QueryRow(id).Scan(&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseDate, &movie.Rating, &movie.Actors)
+	err = stmt.QueryRow(id).Scan(&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseDate, &movie.Rating, (*pq.Int32Array)(&movie.ActorIDs))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, storage.ErrMovieNotFound
@@ -107,4 +108,43 @@ func (s *Storage) GetMovieById(id int) (*entity.Movie, error) {
 	}
 
 	return &movie, nil
+}
+
+func (s *Storage) CreateMovie(movie *entity.NewMovie) (int, error) {
+	const op = "storage.postgres.CreateMovie"
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare("INSERT INTO movies (title, description, release_date, rating) VALUES ($1, $2, $3, $4) RETURNING id")
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var id int
+	err = stmt.QueryRow(movie.Title, movie.Description, movie.ReleaseDate, movie.Rating).Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	stmt, err = tx.Prepare("INSERT INTO movie_actors (movie_id, actor_id) VALUES ($1, $2)")
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	for _, actorID := range movie.ActorIDs {
+		_, err = stmt.Exec(id, actorID)
+		if err != nil {
+			return 0, fmt.Errorf("%s: %w", op, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return id, nil
 }
