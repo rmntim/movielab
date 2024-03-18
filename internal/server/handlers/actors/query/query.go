@@ -37,7 +37,7 @@ func New(log *slog.Logger, actorGetter ActorGetter) http.HandlerFunc {
 			limit, err = strconv.Atoi(queryLimit)
 			if err != nil {
 				log.Error("Failed to parse limit", sl.Err(err))
-				w.WriteHeader(http.StatusInternalServerError)
+				w.WriteHeader(http.StatusBadRequest)
 				render.JSON(w, r, resp.Error("Failed to parse limit"))
 				return
 			}
@@ -47,7 +47,7 @@ func New(log *slog.Logger, actorGetter ActorGetter) http.HandlerFunc {
 			offset, err = strconv.Atoi(queryOffset)
 			if err != nil {
 				log.Error("Failed to parse offset", sl.Err(err))
-				w.WriteHeader(http.StatusInternalServerError)
+				w.WriteHeader(http.StatusBadRequest)
 				render.JSON(w, r, resp.Error("Failed to parse offset"))
 				return
 			}

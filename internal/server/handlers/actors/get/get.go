@@ -31,7 +31,7 @@ func New(log *slog.Logger, actorByIdGetter ActorByIdGetter) http.HandlerFunc {
 		id, err := strconv.Atoi(r.PathValue("id"))
 		if err != nil {
 			log.Error("Failed to parse id", sl.Err(err))
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusBadRequest)
 			render.JSON(w, r, resp.Error("Failed to parse id"))
 			return
 		}

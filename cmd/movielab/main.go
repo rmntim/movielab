@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/hobord/routegroup"
+	"github.com/mvrilo/go-redoc"
 	"github.com/rmntim/movielab/internal/config"
 	"github.com/rmntim/movielab/internal/lib/logger/sl"
 	actorsCreate "github.com/rmntim/movielab/internal/server/handlers/actors/create"
@@ -91,6 +92,16 @@ func setupHandler(log *slog.Logger, storage *postgres.Storage) http.Handler {
 	actorGroup.HandleFunc("DELETE /{id}", actorsDelete.New(log, storage))
 	actorGroup.HandleFunc("PUT /{id}", actorsUpdate.New(log, storage))
 	actorGroup.HandleFunc("PATCH /{id}", actorsUpdate.New(log, storage))
+
+	doc := redoc.Redoc{
+		SpecFile: "./api/openapi.yaml",
+		SpecPath: "/openapi.yaml",
+		DocsPath: "/docs",
+	}
+	docHandler := doc.Handler()
+
+	root.Handle("/docs", docHandler)
+	root.Handle("/openapi.yaml", docHandler)
 
 	// Have to put logger last, cause routegroup package is foolish with it
 	handler := loggerMw.New(log)(root)

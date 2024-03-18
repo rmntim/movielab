@@ -23,6 +23,9 @@ WORKDIR /app
 COPY --from=builder /app/server /app/server
 COPY --from=builder /app/config/default.yaml /app/config.yaml
 
+RUN mkdir /app/api
+COPY --from=builder /app/api/openapi.yaml /app/api/openapi.yaml
+
 EXPOSE 8080
 
 # Run the web service on container startup.
