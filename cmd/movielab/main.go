@@ -5,6 +5,7 @@ import (
 	"github.com/rmntim/movielab/internal/config"
 	"github.com/rmntim/movielab/internal/lib/logger/sl"
 	"github.com/rmntim/movielab/internal/server/handlers/auth"
+	"github.com/rmntim/movielab/internal/server/handlers/movies"
 	jwtMw "github.com/rmntim/movielab/internal/server/middleware/jwt"
 	loggerMw "github.com/rmntim/movielab/internal/server/middleware/logger"
 	"github.com/rmntim/movielab/internal/storage/postgres"
@@ -34,19 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	mux := http.NewServeMux()
-	root := routegroup.NewGroup(routegroup.WithMux(mux))
-
-	root.HandleFunc("POST /auth/sign-in", auth.New(log, storage, jwtSecret))
-
-	apiGroup := root.SubGroup("/api")
-	apiGroup.Use(jwtMw.New(jwtSecret))
-
-	movieGroup := apiGroup.SubGroup("/movies")
-	movieGroup.HandleFunc("GET /", nil)
-
-	// Have to put logger last, cause routegroup package is foolish with it
-	handler := loggerMw.New(log)(root)
+	handler := setupHandler(log, storage)
 
 	log.Info("Starting server", slog.String("address", cfg.Address))
 	srv := &http.Server{
@@ -63,6 +52,24 @@ func main() {
 
 	log.Info("Server stopped")
 }
+
+func setupHandler(log *slog.Logger, storage *postgres.Storage) http.Handler {
+	mux := http.NewServeMux()
+	root := routegroup.NewGroup(routegroup.WithMux(mux))
+
+	root.HandleFunc("POST /auth/sign-in", auth.New(log, storage, jwtSecret))
+
+	apiGroup := root.SubGroup("/api")
+	apiGroup.Use(jwtMw.New(jwtSecret))
+
+	movieGroup := apiGroup.SubGroup("/movies")
+	movieGroup.HandleFunc("GET /", movies.NewQueryHandler(log, storage))
+
+	// Have to put logger last, cause routegroup package is foolish with it
+	handler := loggerMw.New(log)(root)
+	return handler
+}
+
 func setupLogger(env string) *slog.Logger {
 	var logger *slog.Logger
 

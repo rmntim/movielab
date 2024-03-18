@@ -10,27 +10,28 @@ CREATE TABLE IF NOT EXISTS users
 
 CREATE TYPE sex AS ENUM ('male', 'female');
 
-CREATE TABLE IF NOT EXISTS actors
-(
-    id        SERIAL PRIMARY KEY,
-    name      VARCHAR(255) NOT NULL,
-    sex       sex          NOT NULL,
-    birthdate DATE         NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS movies
 (
     id           SERIAL PRIMARY KEY,
     title        VARCHAR(150) NOT NULL,
     description  VARCHAR(1000),
-    release_date DATE         NOT NULL,
+    release_date TIMESTAMPTZ  NOT NULL,
     rating       INT          NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS actors_movies
+CREATE TABLE IF NOT EXISTS actors
 (
-    id       SERIAL PRIMARY KEY,
-    actor_id INT REFERENCES actors,
-    movie_id INT REFERENCES movies,
-    UNIQUE (actor_id, movie_id)
+    id         SERIAL PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    sex        sex          NOT NULL,
+    birth_date TIMESTAMPTZ  NOT NULL,
+    movie_id   INT          NOT NULL REFERENCES movies (id)
 );
+
+CREATE VIEW movies_actors AS
+SELECT movies.*,
+       (SELECT array_to_json(array_agg(row_to_json(actorslist.*))) as array_to_json
+        FROM (SELECT id, name, sex, birth_date
+              FROM actors
+              where movie_id = movies.id) actorslist) as actors
+FROM movies;
