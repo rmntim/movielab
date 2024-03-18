@@ -301,3 +301,19 @@ func (s *Storage) DeleteActor(id int) error {
 
 	return nil
 }
+
+func (s *Storage) UpdateActor(id int, actor *entity.Actor) error {
+	const op = "storage.postgres.UpdateActor"
+
+	stmt, err := s.db.Prepare("UPDATE actors SET name = $1, sex = $2, birth_date = $3 WHERE id = $4")
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = stmt.Exec(actor.Name, actor.Sex, actor.BirthDate, id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
