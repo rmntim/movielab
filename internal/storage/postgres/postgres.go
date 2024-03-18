@@ -213,6 +213,38 @@ func (s *Storage) UpdateMovie(id int, movie *entity.Movie) error {
 	return nil
 }
 
+func (s *Storage) SearchMovies(title, actorName string, limit, offset int) ([]entity.Movie, error) {
+	const op = "storage.postgres.SearchMovies"
+
+	stmt, err := s.db.Prepare(
+		`SELECT m.*, array_remove(array_agg(a.id), NULL) FROM movies m
+				LEFT JOIN movie_actors ma ON ma.movie_id = m.id
+				LEFT JOIN actors a ON a.id = ma.actor_id
+				WHERE m.title ILIKE $1 AND a.name ILIKE $2
+				GROUP BY m.id
+				LIMIT $3 OFFSET $4`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	rows, err := stmt.Query(fmt.Sprintf("%%%s%%", title), fmt.Sprintf("%%%s%%", actorName), limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var movies []entity.Movie
+	for rows.Next() {
+		var movie entity.Movie
+		err = rows.Scan(&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseDate, &movie.Rating, (*pq.Int32Array)(&movie.ActorIDs))
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		movies = append(movies, movie)
+	}
+
+	return movies, nil
+}
+
 func (s *Storage) GetActors(limit, offset int) ([]entity.Actor, error) {
 	const op = "storage.postgres.GetActors"
 
