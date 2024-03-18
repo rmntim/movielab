@@ -4,6 +4,7 @@ import (
 	"github.com/hobord/routegroup"
 	"github.com/rmntim/movielab/internal/config"
 	"github.com/rmntim/movielab/internal/lib/logger/sl"
+	actorsQuery "github.com/rmntim/movielab/internal/server/handlers/actors/query"
 	"github.com/rmntim/movielab/internal/server/handlers/auth"
 	moviesCreate "github.com/rmntim/movielab/internal/server/handlers/movies/create"
 	moviesDelete "github.com/rmntim/movielab/internal/server/handlers/movies/delete"
@@ -74,6 +75,9 @@ func setupHandler(log *slog.Logger, storage *postgres.Storage) http.Handler {
 	movieGroup.HandleFunc("DELETE /{id}", moviesDelete.New(log, storage))
 	movieGroup.HandleFunc("PUT /{id}", moviesUpdate.New(log, storage))
 	movieGroup.HandleFunc("PATCH /{id}", moviesUpdate.New(log, storage))
+
+	actorGroup := apiGroup.SubGroup("/actors")
+	actorGroup.HandleFunc("GET /", actorsQuery.New(log, storage))
 
 	// Have to put logger last, cause routegroup package is foolish with it
 	handler := loggerMw.New(log)(root)
