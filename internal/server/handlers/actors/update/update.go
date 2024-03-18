@@ -12,6 +12,7 @@ import (
 	"strconv"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@v2.42.0 --name=ActorUpdater
 type ActorUpdater interface {
 	GetActorById(id int) (*entity.Actor, error)
 	UpdateActor(id int, actor *entity.Actor) error

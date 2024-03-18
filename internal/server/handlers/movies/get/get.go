@@ -12,6 +12,7 @@ import (
 	"strconv"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@v2.42.0 --name=MovieByIdGetter
 type MovieByIdGetter interface {
 	GetMovieById(id int) (*entity.Movie, error)
 }

@@ -21,6 +21,7 @@ type Response struct {
 	Token string `json:"token"`
 }
 
+//go:generate go run github.com/vektra/mockery/v2@v2.42.0 --name=UserRoleGetter
 type UserRoleGetter interface {
 	GetUserRole(username string, password string) (string, error)
 }

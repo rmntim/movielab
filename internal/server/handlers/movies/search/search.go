@@ -10,6 +10,7 @@ import (
 	"strconv"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@v2.42.0 --name=MovieSearcher
 type MovieSearcher interface {
 	SearchMovies(title, actorName string, limit, offset int) ([]entity.Movie, error)
 }
