@@ -30,6 +30,7 @@ func New(log *slog.Logger, movieDeleter MovieDeleter) http.HandlerFunc {
 		if err != nil {
 			log.Error("Failed to parse movie id", sl.Err(err))
 			w.WriteHeader(http.StatusBadRequest)
+			render.JSON(w, r, resp.Error("Failed to parse movie id"))
 			return
 		}
 
@@ -37,6 +38,7 @@ func New(log *slog.Logger, movieDeleter MovieDeleter) http.HandlerFunc {
 		if err != nil {
 			log.Error("Failed to delete movie", sl.Err(err))
 			w.WriteHeader(http.StatusInternalServerError)
+			render.JSON(w, r, resp.Error("Failed to delete movie"))
 			return
 		}
 
