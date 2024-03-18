@@ -243,3 +243,28 @@ func (s *Storage) GetActors(limit, offset int) ([]entity.Actor, error) {
 
 	return actors, nil
 }
+
+func (s *Storage) GetActorById(id int) (*entity.Actor, error) {
+	const op = "storage.postgres.GetActorByID"
+
+	stmt, err := s.db.Prepare(`
+		SELECT a.*, array_remove(array_agg(m.id), NULL) FROM actors a
+		LEFT JOIN movie_actors ma ON ma.actor_id = a.id
+		LEFT JOIN movies m ON m.id = ma.movie_id
+		WHERE a.id = $1
+		GROUP BY a.id`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var actor entity.Actor
+	err = stmt.QueryRow(id).Scan(&actor.ID, &actor.Name, &actor.Sex, &actor.BirthDate, (*pq.Int32Array)(&actor.MovieIDs))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, storage.ErrActorNotFound
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &actor, nil
+}
