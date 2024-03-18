@@ -9,7 +9,7 @@ services:
       POSTGRES_DB: movielab
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ../migrations/postgres/init.sql:/docker-entrypoint-initdb.d/1-schema.sql
+      - ./migrations/postgres/init.sql:/docker-entrypoint-initdb.d/1-schema.sql
     ports:
       - "5432:5432"
 
