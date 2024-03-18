@@ -24,14 +24,12 @@ CREATE TABLE IF NOT EXISTS actors
     id         SERIAL PRIMARY KEY,
     name       VARCHAR(255) NOT NULL,
     sex        sex          NOT NULL,
-    birth_date TIMESTAMPTZ  NOT NULL,
-    movie_id   INT          NOT NULL REFERENCES movies (id)
+    birth_date TIMESTAMPTZ  NOT NULL
 );
 
-CREATE VIEW movies_actors AS
-SELECT movies.*,
-       (SELECT array_to_json(array_agg(row_to_json(actorslist.*))) as array_to_json
-        FROM (SELECT id, name, sex, birth_date
-              FROM actors
-              where movie_id = movies.id) actorslist) as actors
-FROM movies;
+CREATE TABLE IF NOT EXISTS movie_actors
+(
+    movie_id INT NOT NULL REFERENCES movies (id),
+    actor_id INT NOT NULL REFERENCES actors (id),
+    PRIMARY KEY (movie_id, actor_id)
+);

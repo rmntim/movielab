@@ -9,5 +9,4 @@ type Movie struct {
 	Description string    `json:"description,omitempty"`
 	ReleaseDate time.Time `json:"release_date"`
 	Rating      int       `json:"rating"`
-	Actors      []Actor   `json:"actors"`
 }
