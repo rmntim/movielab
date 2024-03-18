@@ -1,12 +1,10 @@
-package movies
+package query
 
 import (
-	"errors"
 	"github.com/go-chi/render"
 	"github.com/rmntim/movielab/internal/entity"
 	resp "github.com/rmntim/movielab/internal/lib/api/response"
 	"github.com/rmntim/movielab/internal/lib/logger/sl"
-	"github.com/rmntim/movielab/internal/storage"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -16,7 +14,12 @@ type MovieGetter interface {
 	GetMovies(limit, offset int, orderBy string, asc bool) ([]entity.Movie, error)
 }
 
-func NewQueryHandler(log *slog.Logger, movieGetter MovieGetter) http.HandlerFunc {
+type Response struct {
+	resp.Response
+	Movies []entity.Movie `json:"movies"`
+}
+
+func New(log *slog.Logger, movieGetter MovieGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.movies.NewQueryHandler"
 
@@ -71,41 +74,9 @@ func NewQueryHandler(log *slog.Logger, movieGetter MovieGetter) http.HandlerFunc
 			movies = []entity.Movie{}
 		}
 
-		render.JSON(w, r, movies)
-	}
-}
-
-type MovieByIdGetter interface {
-	GetMovieById(id int) (*entity.Movie, error)
-}
-
-func NewGetByIdHandler(log *slog.Logger, movieByIdGetter MovieByIdGetter) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "handlers.movies.NewGetByIdHandler"
-
-		log := log.With(slog.String("op", op))
-
-		id, err := strconv.Atoi(r.PathValue("id"))
-		if err != nil {
-			log.Error("Failed to parse id", sl.Err(err))
-			w.WriteHeader(http.StatusInternalServerError)
-			render.JSON(w, r, resp.Error("Failed to parse id"))
-			return
-		}
-
-		movie, err := movieByIdGetter.GetMovieById(id)
-		if err != nil {
-			if errors.Is(err, storage.ErrMovieNotFound) {
-				w.WriteHeader(http.StatusNotFound)
-				render.JSON(w, r, resp.Error("Movie not found"))
-				return
-			}
-			log.Error("Failed to get movie", sl.Err(err))
-			w.WriteHeader(http.StatusInternalServerError)
-			render.JSON(w, r, resp.Error("Failed to get movie"))
-			return
-		}
-
-		render.JSON(w, r, movie)
+		render.JSON(w, r, Response{
+			Response: resp.Ok(),
+			Movies:   movies,
+		})
 	}
 }
