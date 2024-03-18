@@ -21,6 +21,13 @@ tasks:
     generates:
       - ./{{.BUILD_DIR}}/{{.EXE}}
 
+  test:
+    desc: Run tests
+    cmds:
+      - go test -v ./...
+    sources:
+      - '**/*.go'
+
   clean:
     desc: Clean build artifacts
     cmds:
