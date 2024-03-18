@@ -1,6 +1,19 @@
 version: "3"
 
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      CONFIG_PATH: ./config.yaml
+      DATABASE_URL: postgres://postgres:postgres@db:5432/movielab?sslmode=disable
+
   db:
     image: postgres:15
     environment:
