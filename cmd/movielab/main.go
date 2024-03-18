@@ -64,6 +64,7 @@ func setupHandler(log *slog.Logger, storage *postgres.Storage) http.Handler {
 
 	movieGroup := apiGroup.SubGroup("/movies")
 	movieGroup.HandleFunc("GET /", movies.NewQueryHandler(log, storage))
+	movieGroup.HandleFunc("GET /{id}", movies.NewGetByIdHandler(log, storage))
 
 	// Have to put logger last, cause routegroup package is foolish with it
 	handler := loggerMw.New(log)(root)

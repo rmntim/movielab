@@ -1,11 +1,14 @@
 package postgres
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/rmntim/movielab/internal/entity"
+	"github.com/rmntim/movielab/internal/storage"
 )
 
 type Storage struct {
@@ -79,4 +82,29 @@ func (s *Storage) GetMovies(limit, offset int, orderBy string, asc bool) ([]enti
 	}
 
 	return movies, nil
+}
+
+func (s *Storage) GetMovieById(id int) (*entity.Movie, error) {
+	const op = "storage.postgres.GetMovieById"
+
+	stmt, err := s.db.Prepare("SELECT row_to_json(row) FROM (SELECT * FROM movies_actors WHERE id = $1) row")
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var movieJson string
+	err = stmt.QueryRow(id).Scan(&movieJson)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, storage.ErrMovieNotFound
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var movie entity.Movie
+	if err := json.Unmarshal([]byte(movieJson), &movie); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &movie, nil
 }
