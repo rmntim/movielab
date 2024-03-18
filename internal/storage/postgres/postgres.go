@@ -268,3 +268,20 @@ func (s *Storage) GetActorById(id int) (*entity.Actor, error) {
 
 	return &actor, nil
 }
+
+func (s *Storage) CreateActor(actor *entity.NewActor) (int, error) {
+	const op = "storage.postgres.CreateActor"
+
+	stmt, err := s.db.Prepare("INSERT INTO actors (name, sex, birth_date) VALUES ($1, $2, $3) RETURNING id")
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var id int
+	err = stmt.QueryRow(actor.Name, actor.Sex, actor.BirthDate).Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return id, nil
+}
