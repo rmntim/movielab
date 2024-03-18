@@ -164,3 +164,51 @@ func (s *Storage) DeleteMovie(id int) error {
 
 	return nil
 }
+
+func (s *Storage) UpdateMovie(id int, movie *entity.Movie) error {
+	const op = "storage.postgres.UpdateMovie"
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare("UPDATE movies SET title = $1, description = $2, release_date = $3, rating = $4 WHERE id = $5")
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = stmt.Exec(movie.Title, movie.Description, movie.ReleaseDate, movie.Rating, id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	stmt, err = tx.Prepare("DELETE FROM movie_actors WHERE movie_id = $1")
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = stmt.Exec(id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	stmt, err = tx.Prepare("INSERT INTO movie_actors (movie_id, actor_id) VALUES ($1, $2)")
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	for _, actorID := range movie.ActorIDs {
+		_, err = stmt.Exec(id, actorID)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
