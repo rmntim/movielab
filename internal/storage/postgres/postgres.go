@@ -57,8 +57,8 @@ func (s *Storage) GetMovies(limit, offset int, orderBy string, asc bool) ([]enti
 
 	query := fmt.Sprintf(
 		`SELECT m.*, array_remove(array_agg(a.id), NULL) FROM movies m
-				JOIN movie_actors ma ON ma.movie_id = m.id
-				JOIN actors a ON a.id = ma.actor_id
+				LEFT JOIN movie_actors ma ON ma.movie_id = m.id
+				LEFT JOIN actors a ON a.id = ma.actor_id
 				GROUP BY m.id
 				ORDER BY $1 %s LIMIT $2 OFFSET $3`,
 		orderDir)
