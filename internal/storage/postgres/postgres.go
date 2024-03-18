@@ -212,3 +212,34 @@ func (s *Storage) UpdateMovie(id int, movie *entity.Movie) error {
 
 	return nil
 }
+
+func (s *Storage) GetActors(limit, offset int) ([]entity.Actor, error) {
+	const op = "storage.postgres.GetActors"
+
+	stmt, err := s.db.Prepare(
+		`SELECT a.*, array_remove(array_agg(m.id), NULL) FROM actors a
+				LEFT JOIN movie_actors ma ON ma.actor_id = a.id
+				LEFT JOIN movies m ON m.id = ma.movie_id
+				GROUP BY a.id
+				LIMIT $1 OFFSET $2`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	rows, err := stmt.Query(limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var actors []entity.Actor
+	for rows.Next() {
+		var actor entity.Actor
+		err = rows.Scan(&actor.ID, &actor.Name, &actor.Sex, &actor.BirthDate, (*pq.Int32Array)(&actor.MovieIDs))
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		actors = append(actors, actor)
+	}
+
+	return actors, nil
+}
