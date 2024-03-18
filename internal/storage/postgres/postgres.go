@@ -285,3 +285,19 @@ func (s *Storage) CreateActor(actor *entity.NewActor) (int, error) {
 
 	return id, nil
 }
+
+func (s *Storage) DeleteActor(id int) error {
+	const op = "storage.postgres.DeleteActor"
+
+	stmt, err := s.db.Prepare("DELETE FROM actors WHERE id = $1")
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = stmt.Exec(id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}

@@ -5,6 +5,7 @@ import (
 	"github.com/rmntim/movielab/internal/config"
 	"github.com/rmntim/movielab/internal/lib/logger/sl"
 	actorsCreate "github.com/rmntim/movielab/internal/server/handlers/actors/create"
+	actorsDelete "github.com/rmntim/movielab/internal/server/handlers/actors/delete"
 	actorsGet "github.com/rmntim/movielab/internal/server/handlers/actors/get"
 	actorsQuery "github.com/rmntim/movielab/internal/server/handlers/actors/query"
 	"github.com/rmntim/movielab/internal/server/handlers/auth"
@@ -83,6 +84,7 @@ func setupHandler(log *slog.Logger, storage *postgres.Storage) http.Handler {
 	actorGroup.HandleFunc("POST /", actorsCreate.New(log, storage))
 
 	actorGroup.HandleFunc("GET /{id}", actorsGet.New(log, storage))
+	actorGroup.HandleFunc("DELETE /{id}", actorsDelete.New(log, storage))
 
 	// Have to put logger last, cause routegroup package is foolish with it
 	handler := loggerMw.New(log)(root)

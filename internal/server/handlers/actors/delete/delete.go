@@ -9,26 +9,26 @@ import (
 	"strconv"
 )
 
-type MovieDeleter interface {
-	DeleteMovie(id int) error
+type ActorDeleter interface {
+	DeleteActor(id int) error
 }
 
-func New(log *slog.Logger, movieDeleter MovieDeleter) http.HandlerFunc {
+func New(log *slog.Logger, actorDeleter ActorDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "handlers.movies.delete.New"
+		const op = "handlers.actors.delete.New"
 
 		log := log.With(slog.String("op", op))
 
 		id, err := strconv.Atoi(r.PathValue("id"))
 		if err != nil {
-			log.Error("Failed to parse movie id", sl.Err(err))
+			log.Error("Failed to parse actor id", sl.Err(err))
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		err = movieDeleter.DeleteMovie(id)
+		err = actorDeleter.DeleteActor(id)
 		if err != nil {
-			log.Error("Failed to delete movie", sl.Err(err))
+			log.Error("Failed to delete actor", sl.Err(err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
