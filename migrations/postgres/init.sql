@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS actors
 
 CREATE TABLE IF NOT EXISTS movie_actors
 (
-    movie_id INT NOT NULL REFERENCES movies (id),
-    actor_id INT NOT NULL REFERENCES actors (id),
+    movie_id INT NOT NULL REFERENCES movies (id) ON DELETE CASCADE,
+    actor_id INT NOT NULL REFERENCES actors (id) ON DELETE CASCADE,
     PRIMARY KEY (movie_id, actor_id)
 );
