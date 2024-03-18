@@ -34,7 +34,7 @@ func TestActorsGet(t *testing.T) {
 		{
 			name:      "Bad id",
 			id:        "a",
-			respCode:  http.StatusInternalServerError,
+			respCode:  http.StatusBadRequest,
 			respError: "Failed to parse id",
 		},
 		{

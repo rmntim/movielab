@@ -35,13 +35,13 @@ func TestActorQuery(t *testing.T) {
 		{
 			name:      "Bad limit",
 			limit:     "a",
-			respCode:  http.StatusInternalServerError,
+			respCode:  http.StatusBadRequest,
 			respError: "Failed to parse limit",
 		},
 		{
 			name:      "Bad offset",
 			offset:    "a",
-			respCode:  http.StatusInternalServerError,
+			respCode:  http.StatusBadRequest,
 			respError: "Failed to parse offset",
 		},
 		{
