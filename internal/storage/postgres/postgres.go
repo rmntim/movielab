@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
@@ -54,9 +53,14 @@ func (s *Storage) GetMovies(limit, offset int, orderBy string, asc bool) ([]enti
 	if asc {
 		orderDir = "ASC"
 	}
-	// HACK: pretty funny way of querying json data, but it probably more performant
-	// than querying actors for each movie or getting every actor/movie record in memory
-	query := fmt.Sprintf("SELECT row_to_json(row) FROM (SELECT * FROM movies_actors ORDER BY $1 %s LIMIT $2 OFFSET $3) row", orderDir)
+
+	query := fmt.Sprintf(
+		`SELECT m.*, array_to_json(array_agg(a)) FROM movies m
+				JOIN movie_actors ma ON ma.movie_id = m.id
+				JOIN actors a ON a.id = ma.actor_id
+				GROUP BY m.id
+				ORDER BY $1 %s LIMIT $2 OFFSET $3`,
+		orderDir)
 	stmt, err := s.db.Prepare(query)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -69,13 +73,9 @@ func (s *Storage) GetMovies(limit, offset int, orderBy string, asc bool) ([]enti
 
 	var movies []entity.Movie
 	for rows.Next() {
-		var movieJson string
-		err = rows.Scan(&movieJson)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
-		}
 		var movie entity.Movie
-		if err := json.Unmarshal([]byte(movieJson), &movie); err != nil {
+		err = rows.Scan(&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseDate, &movie.Rating, &movie.Actors)
+		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		movies = append(movies, movie)
@@ -87,22 +87,22 @@ func (s *Storage) GetMovies(limit, offset int, orderBy string, asc bool) ([]enti
 func (s *Storage) GetMovieById(id int) (*entity.Movie, error) {
 	const op = "storage.postgres.GetMovieById"
 
-	stmt, err := s.db.Prepare("SELECT row_to_json(row) FROM (SELECT * FROM movies_actors WHERE id = $1) row")
+	stmt, err := s.db.Prepare(
+		`SELECT m.*, array_to_json(array_agg(a)) FROM movies m
+				JOIN movie_actors ma ON m.id = ma.movie_id
+				JOIN actors a ON ma.actor_id = a.id
+				WHERE m.id = $1
+				GROUP BY m.id`)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	var movieJson string
-	err = stmt.QueryRow(id).Scan(&movieJson)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, storage.ErrMovieNotFound
-		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	var movie entity.Movie
-	if err := json.Unmarshal([]byte(movieJson), &movie); err != nil {
+	err = stmt.QueryRow(id).Scan(&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseDate, &movie.Rating, &movie.Actors)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, storage.ErrMovieNotFound
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
