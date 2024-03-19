@@ -60,7 +60,8 @@ func New(log *slog.Logger, userGetter UserRoleGetter, secret string) http.Handle
 		}
 
 		jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"role": role,
+			"username": req.Username,
+			"role":     role,
 		})
 		token, err := jwtToken.SignedString([]byte(secret))
 		if err != nil {
