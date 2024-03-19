@@ -22,7 +22,7 @@ func New(secret string) func(http.Handler) http.Handler {
 						render.JSON(w, r, resp.Error(err.Error()))
 						return
 					}
-					w.Header().Set("x-role", role)
+					r.Header.Set("x-role", role)
 					next.ServeHTTP(w, r)
 					return
 				}
