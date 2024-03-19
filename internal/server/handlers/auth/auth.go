@@ -59,11 +59,7 @@ func New(log *slog.Logger, userGetter UserRoleGetter, secret string) http.Handle
 			return
 		}
 
-		jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"username": req.Username,
-			"role":     role,
-		})
-		token, err := jwtToken.SignedString([]byte(secret))
+		token, err := generateJwt(req.Username, role, secret)
 		if err != nil {
 			log.Error("Failed to sign JWT token", sl.Err(err))
 			w.WriteHeader(http.StatusInternalServerError)
@@ -76,4 +72,12 @@ func New(log *slog.Logger, userGetter UserRoleGetter, secret string) http.Handle
 			Token:    token,
 		})
 	}
+}
+
+func generateJwt(username, role, secret string) (string, error) {
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": username,
+		"role":     role,
+	})
+	return jwtToken.SignedString([]byte(secret))
 }
