@@ -86,7 +86,8 @@ func TestAuth(t *testing.T) {
 
 func generateJwt(t *testing.T, secret string) string {
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"role": "admin",
+		"username": "Successful",
+		"role":     "admin",
 	})
 	token, err := jwtToken.SignedString([]byte(secret))
 	require.NoError(t, err)
