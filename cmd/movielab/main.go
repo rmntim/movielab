@@ -30,8 +30,6 @@ const (
 	envProd  = "prod"
 )
 
-const jwtSecret = "secret"
-
 func main() {
 	cfg := config.MustLoad()
 
@@ -46,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler := setupHandler(log, storage)
+	handler := setupHandler(cfg, log, storage)
 
 	log.Info("Starting server", slog.String("address", cfg.Address))
 	srv := &http.Server{
@@ -64,14 +62,14 @@ func main() {
 	log.Info("Server stopped")
 }
 
-func setupHandler(log *slog.Logger, storage *postgres.Storage) http.Handler {
+func setupHandler(cfg *config.Config, log *slog.Logger, storage *postgres.Storage) http.Handler {
 	mux := http.NewServeMux()
 	root := routegroup.NewGroup(routegroup.WithMux(mux))
 
-	root.HandleFunc("POST /auth/sign-in", auth.New(log, storage, jwtSecret))
+	root.HandleFunc("POST /auth/sign-in", auth.New(log, storage, cfg.JwtSecret))
 
 	apiGroup := root.SubGroup("/api")
-	apiGroup.Use(jwtMw.New(jwtSecret))
+	apiGroup.Use(jwtMw.New(cfg.JwtSecret))
 
 	movieGroup := apiGroup.SubGroup("/movies")
 	movieGroup.HandleFunc("GET /", moviesQuery.New(log, storage))

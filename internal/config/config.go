@@ -18,6 +18,7 @@ type HTTPServerConfig struct {
 	Address     string        `yaml:"address" env-required:"true"`
 	Timeout     time.Duration `yaml:"timeout" env-default:"5s"`
 	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"60s"`
+	JwtSecret   string        `yaml:"jwt_secret" env-required:"true"`
 }
 
 func MustLoad() *Config {
