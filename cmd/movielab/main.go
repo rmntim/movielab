@@ -1,7 +1,11 @@
 package main
 
 import (
-	"github.com/hobord/routegroup"
+	"log/slog"
+	"net/http"
+	"os"
+
+	"github.com/go-chi/chi/v5"
 	"github.com/mvrilo/go-redoc"
 	"github.com/rmntim/movielab/internal/config"
 	"github.com/rmntim/movielab/internal/lib/logger/sl"
@@ -20,9 +24,6 @@ import (
 	jwtMw "github.com/rmntim/movielab/internal/server/middleware/jwt"
 	loggerMw "github.com/rmntim/movielab/internal/server/middleware/logger"
 	"github.com/rmntim/movielab/internal/storage/postgres"
-	"log/slog"
-	"net/http"
-	"os"
 )
 
 const (
@@ -63,33 +64,17 @@ func main() {
 }
 
 func setupHandler(cfg *config.Config, log *slog.Logger, storage *postgres.Storage) http.Handler {
-	mux := http.NewServeMux()
-	root := routegroup.NewGroup(routegroup.WithMux(mux))
+	router := chi.NewRouter()
+	router.Use(loggerMw.New(log))
 
-	root.HandleFunc("POST /auth/sign-in", auth.New(log, storage, cfg.JwtSecret))
+	router.Post("/auth/sign-in", auth.New(log, storage, cfg.JwtSecret))
 
-	apiGroup := root.SubGroup("/api")
-	apiGroup.Use(jwtMw.New(cfg.JwtSecret))
+	router.Route("/api/v1", func(r chi.Router) {
+		r.Use(jwtMw.New(cfg.JwtSecret))
 
-	movieGroup := apiGroup.SubGroup("/movies")
-	movieGroup.HandleFunc("GET /", moviesQuery.New(log, storage))
-	movieGroup.HandleFunc("POST /", moviesCreate.New(log, storage))
-
-	movieGroup.HandleFunc("GET /{id}", moviesGet.New(log, storage))
-	movieGroup.HandleFunc("DELETE /{id}", moviesDelete.New(log, storage))
-	movieGroup.HandleFunc("PUT /{id}", moviesUpdate.New(log, storage))
-	movieGroup.HandleFunc("PATCH /{id}", moviesUpdate.New(log, storage))
-
-	movieGroup.HandleFunc("GET /search", search.New(log, storage))
-
-	actorGroup := apiGroup.SubGroup("/actors")
-	actorGroup.HandleFunc("GET /", actorsQuery.New(log, storage))
-	actorGroup.HandleFunc("POST /", actorsCreate.New(log, storage))
-
-	actorGroup.HandleFunc("GET /{id}", actorsGet.New(log, storage))
-	actorGroup.HandleFunc("DELETE /{id}", actorsDelete.New(log, storage))
-	actorGroup.HandleFunc("PUT /{id}", actorsUpdate.New(log, storage))
-	actorGroup.HandleFunc("PATCH /{id}", actorsUpdate.New(log, storage))
+		r.Route("/movies", setupMovieHandler(log, storage))
+		r.Route("/actors", setupActorHandler(log, storage))
+	})
 
 	doc := redoc.Redoc{
 		SpecFile: "./api/openapi.yaml",
@@ -98,12 +83,36 @@ func setupHandler(cfg *config.Config, log *slog.Logger, storage *postgres.Storag
 	}
 	docHandler := doc.Handler()
 
-	root.Handle("/docs", docHandler)
-	root.Handle("/openapi.yaml", docHandler)
+	router.Handle("/docs", docHandler)
+	router.Handle("/openapi.yaml", docHandler)
 
-	// Have to put logger last, cause routegroup package is foolish with it
-	handler := loggerMw.New(log)(root)
-	return handler
+	return router
+}
+
+func setupMovieHandler(log *slog.Logger, storage *postgres.Storage) func(r chi.Router) {
+	return func(r chi.Router) {
+		r.Get("/", moviesQuery.New(log, storage))
+		r.Post("/", moviesCreate.New(log, storage))
+
+		r.Get("/{id}", moviesGet.New(log, storage))
+		r.Delete("/{id}", moviesDelete.New(log, storage))
+		r.Put("/{id}", moviesUpdate.New(log, storage))
+		r.Patch("/{id}", moviesUpdate.New(log, storage))
+
+		r.Get("/search", search.New(log, storage))
+	}
+}
+
+func setupActorHandler(log *slog.Logger, storage *postgres.Storage) func(r chi.Router) {
+	return func(r chi.Router) {
+		r.Get("/", actorsQuery.New(log, storage))
+		r.Post("/", actorsCreate.New(log, storage))
+
+		r.Get("/{id}", actorsGet.New(log, storage))
+		r.Delete("/{id}", actorsDelete.New(log, storage))
+		r.Put("/{id}", actorsUpdate.New(log, storage))
+		r.Patch("/{id}", actorsUpdate.New(log, storage))
+	}
 }
 
 func setupLogger(env string) *slog.Logger {
